@@ -21,10 +21,10 @@ try:
         console = Console(tft, char_writer, cwidth=font.WIDTH, lheight=font.HEIGHT)
     except ImportError:
         # If tft_graphics can't be loaded, just use the base MPDisplay with base font
-        print("\nError loading tft_graphics.  Using base MPDisplay for console.\n")
+        print("\nError loading tft_graphics or font.  Using base MPDisplay for console.\n")
         console = Console(display_drv)
 except ImportError:
-    print("\nError loading MPDisplay and MPConsole.\n")
+    print("\nError loading MPDisplay or MPConsole.\n")
     console = None
 
 
