@@ -26,7 +26,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-import uio
+import io
 import os
 import framebuf
 
@@ -36,7 +36,7 @@ except ImportError:
     Timer = None
 
 
-class Console(uio.IOBase):
+class Console(io.IOBase):
     """
     Console class for MicroPython
 
