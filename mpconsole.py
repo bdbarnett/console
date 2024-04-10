@@ -102,6 +102,8 @@ class Console(io.IOBase):
             self._char_buf = memoryview(bytearray(self._cwidth * self._lheight * 2))
             self._char_fb = framebuf.FrameBuffer(self._char_buf, self._cwidth, self._lheight, format)
 
+        self._initialized = False
+
         if Timer:  # If the Timer class is available
             self._timer = Timer(-1)
         else:
@@ -118,7 +120,9 @@ class Console(io.IOBase):
         self.display_drv.vscrdef(self._tfa, self._vsa, self._bfa)  # Set the vertical scroll definition
 
         self.draw_title_bar(self.fgcolor)
-        self.draw_status_bar(self.fgcolor)
+        if not self._initialized:
+            self.draw_status_bar(self.fgcolor)
+
         try:  # MicroPython on Unix doesn't have os.dupterm enabled by default
             if repl:
                 self.title("MicroPython REPL")
@@ -130,6 +134,7 @@ class Console(io.IOBase):
             pass
         self.register_sb_cmds()
         self.cls()
+        self._initialized = True
 
     def cls(self):
         self.x = 0
