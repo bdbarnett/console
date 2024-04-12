@@ -13,22 +13,29 @@ from sys import implementation, platform
 import vga2_8x16 as font  # Check the font first, otherwise no need to load tft_graphics
 from tft_graphics import Graphics  # Load tft_graphics
 
+# Create the tft object, specifying the rotation
+tft = Graphics(display_drv, rotation=1)
 
-tft = Graphics(display_drv, rotation=0)  # Create the tft object, specifying the rotation
 # Tell Console to use tft.text as the character writer.  Have to use a lambda to map the
 # way Console calls char_writer (without `font`) to the way tft.expects it with `font`
 char_writer = lambda char, x, y, fg, bg: tft.text(font, char, x, y, fg, bg)
 console = Console(tft, char_writer, cwidth=font.WIDTH, lheight=font.HEIGHT)
+
+# Enable the REPL
+console(True)  
+
+# Show the platform and memory free on the status bar
 console.sb_text_left(platform, Graphics.RED)
-console(True)  # Enable the REPL
-maj, min, *_ = implementation.version
 console.register_sb_cmds(right=lambda: f"mf={mem_free():,}")
 
+# Set the title to the MicroPython version and optionally IP address if able to connect to wifi
+major, minor, *_ = implementation.version
 try:
-    from wifi import wlan
-    console.title(f"MicroPython {maj}.{min} REPL @ {wlan.ifconfig()[0]}", Graphics.BLUE)
-except ImportError:
-    console.title(f"MicroPython {maj}.{min} REPL", Graphics.BLUE)
+    import wifi
+    wlan = wifi.connect(SSID, PASSWORD)
+    console.title(f"MicroPython {major}.{minor} REPL @ {wlan.ifconfig()[0]}", Graphics.BLUE)
+except:
+    console.title(f"MicroPython {major}.{minor} REPL", Graphics.BLUE)
 
 
 #### Example commands
