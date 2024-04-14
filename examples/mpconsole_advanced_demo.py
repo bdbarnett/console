@@ -13,7 +13,7 @@ SSID = "<ssid>"
 PASSPHRASE = "<passphrase>"
 
 
-tft = Graphics(display_drv, rotation=1)  # Create the tft object, specifying the rotation
+tft = Graphics(display_drv, rotation=0)  # Create the tft object, specifying the rotation
 # Tell Console to use tft.text as the character writer.  Have to use a lambda to map the
 # way Console calls char_writer (without `font`) to the way tft.expects it with `font`
 char_writer = lambda char, x, y, fg, bg: tft.text(font, char, x, y, fg, bg)
