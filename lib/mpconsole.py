@@ -27,7 +27,6 @@ SOFTWARE.
 """
 
 import io
-import os
 import framebuf
 
 try:  # MicroPython on Unix doesn't have a Timer class
@@ -55,11 +54,21 @@ class Console(io.IOBase):
     - char_writer(char, x, y, fg, bg): Function to write a fixed-width character
         - Use a lambda function to pass additional arguments to the character writer.
     """
+
+    TITLE = 0
+    LEFT = 1
+    MIDDLE = 2
+    RIGHT = 3
+
     def __init__(
         self,
         display_drv,  # Display driver object
         char_writer=None,  # Function to write a fixed-width character
         *,
+        title="Console",  # Title text
+        left="",  # Left status bar text
+        middle="",  # Middle status bar text
+        right="",  # Right status bar text
         cwidth=8,  # Character width
         lheight=8,  # Line height
         bgcolor=0,  # Background color; same as 0x0000 for 16-bit color
@@ -67,7 +76,6 @@ class Console(io.IOBase):
         tfa=None,  # Top fixed area; default is line height
         bfa=None,  # Bottom fixed area; default is line height
         timer_period=1000,  # Timer period for status bar
-        repl=False,  # Enable REPL
         readobj=None,  # Object to read from, such as a keyboard queue
     ):
         self.display_drv = display_drv
@@ -78,8 +86,15 @@ class Console(io.IOBase):
         self._tfa = tfa if tfa else lheight
         self._bfa = bfa if bfa else lheight
         self._timer_period = timer_period
-        self._sb_cmd_left = self._sb_cmd_middle = self._sb_cmd_right = None  # Status bar commands
-        self.readobj = readobj
+        self._readobj = readobj
+
+        self._labels = {  # Colors are reversed in the labels
+            Console.TITLE: (title, bgcolor, fgcolor),
+            Console.LEFT: (left, bgcolor, fgcolor),
+            Console.MIDDLE: (middle, bgcolor, fgcolor),
+            Console.RIGHT: (right, bgcolor, fgcolor),
+        }
+
         if char_writer:  # If a custom character writer is provided
             self._char_writer = char_writer  # Override the default character writer
         else:  # Otherwise, use the default character writer
@@ -102,16 +117,14 @@ class Console(io.IOBase):
             self._char_buf = memoryview(bytearray(self._cwidth * self._lheight * 2))
             self._char_fb = framebuf.FrameBuffer(self._char_buf, self._cwidth, self._lheight, format)
 
-        self._initialized = False
-
         if Timer:  # If the Timer class is available
             self._timer = Timer(-1)
         else:
             self._timer = None
 
-        self(repl)  # Call __call__ to initialize the console
+        self.show()
 
-    def __call__(self, repl=False):
+    def show(self):
         self.width = self.display_drv.width
         self.height = self.display_drv.height
         self._vsa = self.height - self._tfa - self._bfa  # Vertical scroll area
@@ -119,22 +132,16 @@ class Console(io.IOBase):
         self.h = self._vsa // self._lheight  # Number of lines in the scroll area
         self.display_drv.vscrdef(self._tfa, self._vsa, self._bfa)  # Set the vertical scroll definition
 
-        self.draw_title_bar(self.fgcolor)
-        if not self._initialized:
-            self.draw_status_bar(self.fgcolor)
+        self._draw_title_bar_bg(self.fgcolor)
+        self._draw_status_bar_bg(self.fgcolor)
+        for pos, params in self._labels.items():
+            if isinstance(params[0], str):
+                self._write_label(pos, params[0], params[1], params[2])
 
-        try:  # MicroPython on Unix doesn't have os.dupterm enabled by default
-            if repl:
-                self.title("MicroPython REPL")
-                os.dupterm(self)
-            else:
-                self.title("Console")
-                os.dupterm(None)
-        except:
-            pass
-        self.register_sb_cmds()
+        if self._timer:
+            self._timer.init(mode=Timer.PERIODIC, period=self._timer_period, callback=self._tick)
+
         self.cls()
-        self._initialized = True
 
     def cls(self):
         self.x = 0
@@ -145,38 +152,49 @@ class Console(io.IOBase):
         self.display_drv.fill_rect(0, self._tfa, self.width, self._vsa, self.bgcolor)
 
     def hide(self):
-        os.dupterm(None)
         if self._timer: self._timer.deinit()
         self.display_drv.vscsad(0)
         self.display_drv.fill_rect(0, 0, self.width, self.height, 0)
 
-    def register_sb_cmds(self, left=-1, middle=-1, right=-1):
-        if not self._timer:
-            return
-        if left != -1:
-            self._sb_cmd_left = left
-        if middle != -1:
-            self._sb_cmd_middle = middle
-        if right != -1:
-            self._sb_cmd_right = right
-        if any([self._sb_cmd_left, self._sb_cmd_middle, self._sb_cmd_right]):
-            self._timer.init(mode=Timer.PERIODIC, period=self._timer_period, callback=self._tick)
+    def label(self, pos, param, fg=0, bg=-1):
+        self._labels[pos] = (param, fg, bg)
+        if isinstance(param, str):
+            self._write_label(pos, param, fg, bg)
+
+    def _write_label(self, pos, text, fg, bg):
+        if pos == Console.TITLE:
+            self._write_str(text, (self.w - len(text)) // 2, self._tfa - self._lheight, fg, bg)
+        elif pos == Console.LEFT:
+            self._write_str(text, 1, self._tfa + self._vsa, fg, bg)
+        elif pos == Console.MIDDLE:
+            self._write_str(text, (self.w - len(text)) // 2, self._tfa + self._vsa, fg, bg)
+        elif pos == Console.RIGHT:
+            self._write_str(text, self.w - len(text) - 1, self._tfa + self._vsa, fg, bg)
+
+    def _write_str(self, text, x, y, fg, bg):
+        for i, char in enumerate(text):
+            self._char_writer(char, (x + i) * self._cwidth, y, fg, bg)
+
+    def _draw_title_bar_bg(self, color=-1):
+        self.display_drv.fill_rect(0, self._tfa - self._lheight, self.width, self._lheight, color)
+
+    def _draw_status_bar_bg(self, color=-1):
+        self.display_drv.fill_rect(0, self._tfa + self._vsa, self.width, self._lheight, color)
+
+    def _tick(self, timer):
+        for pos, params in self._labels.items():
+            if not isinstance(params[0], str):
+                self._write_label(pos, params[0](), params[1], params[2])
+
+    def readinto(self, buf, nbytes=0):
+        if self._readobj != None:
+            return self._readobj.readinto(buf, nbytes)
         else:
-            self._timer.deinit()
+            return None
 
-    def sb_text_left(self, text, fg=0, bg=-1):
-        self._write_str(text, 1, self._tfa + self._vsa, fg, bg)
-
-    def sb_text_middle(self, text, fg=0, bg=-1):
-        self._write_str(text, (self.w - len(text)) // 2, self._tfa + self._vsa, fg, bg)
-
-    def sb_text_right(self, text, fg=0, bg=-1):
-        self._write_str(text, self.w - len(text) - 1, self._tfa + self._vsa, fg, bg)
-
-    def title(self, text, fg=0, bg=-1):
-        self._write_str(text, (self.w - len(text)) // 2, self._tfa - self._lheight, fg, bg)
-
-    def write(self, buf):
+    def write(self, buf, fg=None, bg=None):
+        fg = self.fgcolor if fg == None else fg
+        bg = self.bgcolor if bg == None else bg
         if isinstance(buf, str):
             buf = buf.encode()
         self._draw_cursor(self.bgcolor)
@@ -195,62 +213,27 @@ class Console(io.IOBase):
                     for _ in range(self._esq_read_num(buf, i - 1)):
                         self._backspace()
             else:
-                self._putc(c)
+                self._putc(c, fg, bg)
             i += 1
         self._draw_cursor(self.fgcolor)
         return len(buf)
 
-    def readinto(self, buf, nbytes=0):
-        if self.readobj != None:
-            return self.readobj.readinto(buf, nbytes)
-        else:
-            return None
-
-    def draw_status_bar(self, color=-1):
-        self.display_drv.fill_rect(0, self._tfa + self._vsa, self.width, self._lheight, color)
-
-    def draw_title_bar(self, color=-1):
-        self.display_drv.fill_rect(0, self._tfa - self._lheight, self.width, self._lheight, color)
-
-    @property
-    def _x_pos(self):
-        return self.x * self._cwidth
-
-    @property
-    def _y_pos(self):
-        return ((self.y % self.h) * self._lheight) + self._tfa
-
-    def __del__(self):
-        self.hide()
-
-    def _tick(self, timer):
-        if self._sb_cmd_left:
-            self.sb_text_left(self._sb_cmd_left())
-        if self._sb_cmd_middle:
-            self.sb_text_middle(self._sb_cmd_middle())
-        if self._sb_cmd_right:
-            self.sb_text_right(self._sb_cmd_right())
-
-    def _write_str(self, text, x, y, fg, bg):
-        for i, char in enumerate(text):
-            self._char_writer(char, (x + i) * self._cwidth, y, fg, bg)
-
-    def _char_writer(self, char, x, y, fg, bg):
-        self._char_fb.fill(bg)
-        self._char_fb.text(char, 0, 0, fg)
-        self.display_drv.blit(x, y, self._cwidth, self._lheight, self._char_buf)
-
-    def _putc(self, c):
+    def _putc(self, c, fg, bg):
         c = chr(c)
         if c == "\n":
             self._newline()
         elif c == "\x08":
             self._backspace()
         elif c >= " ":
-            self._char_writer(c, self._x_pos, self._y_pos, self.fgcolor, self.bgcolor)
+            self._char_writer(c, self._x_pos, self._y_pos, fg, bg)
             self.x += 1
             if self.x >= self.w:
                 self._newline()
+
+    def _char_writer(self, char, x, y, fg, bg):
+        self._char_fb.fill(bg)
+        self._char_fb.text(char, 0, 0, fg)
+        self.display_drv.blit(x, y, self._cwidth, self._lheight, self._char_buf)
 
     def _esq_read_num(self, buf, pos):
         digit = 1
@@ -286,3 +269,14 @@ class Console(io.IOBase):
         for l in range(self.y + 1, self.y_end + 1):
             self.display_drv.fill_rect(0, l * self._lheight, self.width, self._lheight, self.bgcolor)
         self.y_end = self.y
+
+    @property
+    def _x_pos(self):
+        return self.x * self._cwidth
+
+    @property
+    def _y_pos(self):
+        return ((self.y % self.h) * self._lheight) + self._tfa
+
+    def __del__(self):
+        self.hide()
