@@ -41,7 +41,7 @@ try:
     os.dupterm(console)
     help()
 except:
-    pass
+    console.write("REPL not available.\n", Graphics.YELLOW)
 
 #### Example commands
 # console.cls()                   # Clear the console screen
