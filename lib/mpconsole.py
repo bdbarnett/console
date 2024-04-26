@@ -28,11 +28,7 @@ SOFTWARE.
 
 import io
 import framebuf
-
-try:  # MicroPython on Unix doesn't have a Timer class
-    from machine import Timer
-except ImportError:
-    Timer = None
+from timer import Timer
 
 
 class Console(io.IOBase):
