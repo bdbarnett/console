@@ -1,9 +1,9 @@
 """
-mpconsole_advanced_demo.py - Advanced demo of the mpconsole module using Graphics.text from tft_graphics
+console_advanced_demo.py - Advanced demo of the mpconsole module using Graphics.text from tft_graphics
 """
 
 from board_config import display_drv
-from mpconsole import Console
+from console import Console
 from sys import implementation, platform
 import vga2_8x16 as font  # Check the font first, otherwise no need to load tft_graphics
 from tft_graphics import Graphics  # Load tft_graphics
