@@ -1,5 +1,5 @@
 """
-mpconsole.py
+console.py
 
 Adapted from https://github.com/boochow/FBConsole
 
