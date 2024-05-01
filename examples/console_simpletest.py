@@ -1,7 +1,7 @@
 """
 console_simpletest.py
 
-Call `console.hide()` before you use the display for anything else.
+Call `console.hide()` to use the display for something else.
 """
 
 from board_config import display_drv
