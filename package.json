@@ -1,0 +1,8 @@
+{
+    "urls": [
+      ["lib/console.py", "github:bdbarnett/console/console.py"],
+      ["examples/console_simpletest.py", "github:bdbarnett/console/examples/console_simpletest.py"],
+      ["examples/console_advanced_demo.py", "github:bdbarnett/console/examples/console_advanced_demo.py"]
+    ],
+    "version": "0.1"
+  }
