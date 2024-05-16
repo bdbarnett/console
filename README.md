@@ -1,5 +1,5 @@
 # Console
-Console is a console / MicroPython REPL for MPDisplay adapted from [FBConsole](https://github.com/boochow/FBConsole)
+Console is a console / MicroPython REPL for [MPDisplay](https://github.com/bdbarnett/mpdisplay) adapted from [FBConsole](https://github.com/boochow/FBConsole)
 
 Note: the Unix port of MicroPython has os.dupterm(), which enables duplicating the terminal (REPL), disabled by default.  To enable it, add
 ```
