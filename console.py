@@ -43,7 +43,7 @@ class Console(io.IOBase):
         - vscrdef(tfa, vsa, bfa): Set vertical scroll definition
         - vscsad(y): Set vertical scroll start address
         - fill_rect(x, y, w, h, color): Fill rectangle with color
-        - blit(x, y, w, h, buf): Blit the character buffer to the display if a
+        - blit(buf, x, y, w, h): Blit the character buffer to the display if a
           custom character writer is not provided
         - width: Width of the display
         - height: Height of the display
@@ -249,7 +249,7 @@ class Console(io.IOBase):
     def _char_writer(self, char, x, y, fg, bg):
         self._char_fb.fill(bg)
         self._char_fb.text(char, 0, 0, fg)
-        self.display_drv.blit(x, y, self._cwidth, self._lheight, self._char_buf)
+        self.display_drv.blit(self._char_buf, x, y, self._cwidth, self._lheight)
 
     def _esq_read_num(self, buf, pos):
         digit = 1
