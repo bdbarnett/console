@@ -31,6 +31,7 @@ SOFTWARE.
 
 import io
 import framebuf
+import gc
 from timer import Timer
 
 
@@ -198,6 +199,7 @@ class Console(io.IOBase):
         )
 
     def _tick(self, timer):
+        gc.collect()
         for pos, params in self._labels.items():
             if not isinstance(params[0], str):
                 self._write_label(pos, params[0](), params[1], params[2])
