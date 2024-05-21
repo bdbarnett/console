@@ -1,5 +1,5 @@
 """
-console_advanced_demo.py - Advanced demo of the mpconsole module using Graphics.text from direct_draw
+console_advanced_demo.py - Advanced demo of the mpconsole module
 """
 
 from board_config import display_drv
