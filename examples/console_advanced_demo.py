@@ -11,16 +11,8 @@ import vga2_8x16 as font
 SSID = "<ssid>"
 PASSPHRASE = "<passphrase>"
 
-BLACK = display_drv.color565(0, 0, 0)
-RED = display_drv.color565(255, 0, 0)
-GREEN = display_drv.color565(0, 255, 0)
-BLUE = display_drv.color565(0, 0, 255)
-CYAN = display_drv.color565(0, 255, 255)
-MAGENTA = display_drv.color565(255, 0, 255)
-YELLOW = display_drv.color565(255, 255, 0)
-WHITE = display_drv.color565(255, 255, 255)
-#def _text(canvas, font, text, x0, y0, color=WHITE, background=BLACK):
 
+pal = display_drv.get_palette()
 
 # Have to use a lambda to map the way Console calls char_writer to the way display_drv.text expects it
 char_writer = lambda char, x, y, fg, bg: display_drv.text(font, char, x, y, fg, bg)
@@ -30,27 +22,23 @@ maj, min, *_ = implementation.version
 try:
     import wifi
 
-    wlan = wifi.connect(SSID, PASSPHRASE)
+    wifi.radio.connect(SSID, PASSPHRASE)
     console.label(
         Console.TITLE,
-        f"{implementation.name} {maj}.{min} @ {wlan.ifconfig()[0]}",
-        BLACK,
+        f"{implementation.name} {maj}.{min} @ {wifi.radio.ipv4_address}",
+        pal.BLACK,
     )
-except ImportError:
-    console.label(Console.TITLE, f"{implementation.name} {maj}.{min}", BLACK)
-
-console.label(Console.LEFT, platform, RED)
-
+except:
+    console.label(Console.TITLE, f"{implementation.name} {maj}.{min}", pal.BLACK)
 
 try:
     import gc
 
-    console.label(Console.RIGHT, lambda: f"mf={gc.mem_free():,}", BLUE)
+    console.label(Console.RIGHT, lambda: f"mf={gc.mem_free():,}", pal.BLUE)
 except ImportError:
     from psutil import virtual_memory
 
-    console.label(Console.RIGHT, lambda: f"mf={virtual_memory().free:,}", BLUE)
-
+    console.label(Console.RIGHT, lambda: f"mf={virtual_memory().free:,}", pal.BLUE)
 
 try:
     import os
@@ -58,7 +46,10 @@ try:
     os.dupterm(console)
     help()
 except:
-    console.write("REPL not available.\n", YELLOW)
+    console.write("REPL not available.\n", pal.YELLOW)
+
+console.label(Console.LEFT, platform, pal.RED)
+
 
 #### Example commands
 # console.cls()                   # Clear the console screen
