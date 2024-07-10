@@ -3,10 +3,11 @@ console_advanced_demo.py - Advanced demo of the mpconsole module
 """
 
 from board_config import display_drv
-from palettes import get_palette
+from graphics.palettes import get_palette
 from console import Console
 from sys import implementation, platform
 import vga2_8x16 as font
+from graphics.pytext import pytext as text
 
 
 SSID = "<ssid>"
@@ -16,7 +17,7 @@ PASSPHRASE = "<passphrase>"
 pal = get_palette()
 
 # Have to use a lambda to map the way Console calls char_writer to the way display_drv.text expects it
-char_writer = lambda char, x, y, fg, bg: display_drv.text(font, char, x, y, fg, bg)
+char_writer = lambda char, x, y, fg, bg: text(display_drv, font, char, x, y, fg, bg)
 console = Console(display_drv, char_writer, cwidth=font.WIDTH, lheight=font.HEIGHT)
 
 maj, min, *_ = implementation.version
